@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScanVerify — Xerox PDF OCR & Excel Checker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header__brand">
+        <div class="header__logo" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="2" y="4" width="24" height="20" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M7 12h14M7 16h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="20" cy="8" r="3" fill="currentColor" opacity=".3"/>
+          </svg>
+        </div>
+        <div>
+          <h1>ScanVerify</h1>
+          <p class="header__tagline">Extract text from Xerox scan PDFs and verify against Excel</p>
+        </div>
+      </div>
+      <div class="header__badge">Runs locally in your browser — files never leave your device</div>
+    </header>
+    <main class="main">
+      <section class="upload-grid">
+        <div class="card upload-card" id="pdf-drop-zone">
+          <div class="card__icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 4h12l8 8v16a2 2 0 01-2 2H8a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" stroke-width="1.5"/><path d="M20 4v8h8" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <h2>Scanned PDF</h2>
+          <p>Drop a Xerox scan PDF here or click to browse</p>
+          <input type="file" id="pdf-input" accept=".pdf,application/pdf" hidden />
+          <button type="button" class="btn btn--secondary" id="pdf-browse">Choose PDF</button>
+          <div class="file-chip" id="pdf-chip" hidden><span id="pdf-name"></span><button type="button" class="file-chip__remove" id="pdf-clear" aria-label="Remove PDF">&times;</button></div>
+        </div>
+        <div class="card upload-card" id="excel-drop-zone">
+          <div class="card__icon card__icon--green"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="4" width="24" height="24" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M4 12h24M4 20h24M12 4v24M20 4v24" stroke="currentColor" stroke-width="1.5"/></svg></div>
+          <h2>Excel Reference</h2>
+          <p>Optional — upload .xlsx, .xls, or .csv to compare values</p>
+          <input type="file" id="excel-input" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" hidden />
+          <button type="button" class="btn btn--secondary" id="excel-browse">Choose Excel</button>
+          <div class="file-chip" id="excel-chip" hidden><span id="excel-name"></span><button type="button" class="file-chip__remove" id="excel-clear" aria-label="Remove Excel">&times;</button></div>
+        </div>
+      </section>
+      <section class="controls card">
+        <div class="controls__row">
+          <div class="field"><label for="ocr-mode">OCR mode</label><select id="ocr-mode"><option value="document" selected>Document (best for Xerox scans)</option><option value="sparse">Sparse text / forms</option><option value="single-block">Single column</option></select></div>
+          <div class="field"><label for="render-scale">Scan resolution</label><select id="render-scale"><option value="2">Standard (faster)</option><option value="3" selected>High (recommended)</option><option value="4">Maximum (slower, best accuracy)</option></select></div>
+          <div class="field"><label for="preprocess">Image enhancement</label><select id="preprocess"><option value="full" selected>Full (grayscale + contrast + sharpen)</option><option value="contrast">Contrast boost only</option><option value="none">None (raw image)</option></select></div>
+        </div>
+        <div class="controls__actions"><button type="button" class="btn btn--primary" id="start-btn" disabled><span id="start-label">Extract Text</span></button><button type="button" class="btn btn--ghost" id="cancel-btn" hidden>Cancel</button></div>
+      </section>
+      <section class="progress card" id="progress-section" hidden>
+        <div class="progress__header"><span id="progress-label">Initializing OCR engine…</span><span id="progress-percent">0%</span></div>
+        <div class="progress__bar"><div class="progress__fill" id="progress-fill"></div></div>
+        <p class="progress__detail" id="progress-detail"></p>
+      </section>
+      <section class="results-grid" id="results-section" hidden>
+        <div class="card results-card">
+          <div class="results-card__header"><h2>Extracted Text</h2><div class="results-card__actions"><button type="button" class="btn btn--small btn--ghost" id="copy-text">Copy</button><button type="button" class="btn btn--small btn--ghost" id="download-text">Download .txt</button></div></div>
+          <div class="tab-bar"><button type="button" class="tab tab--active" data-tab="plain">Plain text</button><button type="button" class="tab" data-tab="structured">Structured rows</button></div>
+          <pre class="text-output" id="text-output"></pre>
+          <div class="table-wrap" id="structured-wrap" hidden><table class="data-table" id="structured-table"><thead><tr id="structured-head"></tr></thead><tbody id="structured-body"></tbody></table></div>
+        </div>
+        <div class="card results-card" id="compare-section" hidden>
+          <div class="results-card__header"><h2>Excel Comparison</h2><div class="results-card__actions"><button type="button" class="btn btn--small btn--ghost" id="download-compare">Download report</button></div></div>
+          <div class="compare-settings">
+            <div class="field"><label for="sheet-select">Sheet</label><select id="sheet-select"></select></div>
+            <div class="field"><label for="column-select">Column to verify</label><select id="column-select"></select></div>
+            <div class="field"><label for="match-mode">Match mode</label><select id="match-mode"><option value="exact">Exact match</option><option value="normalized" selected>Normalized (ignore spaces/case)</option><option value="fuzzy">Fuzzy (tolerate OCR errors)</option></select></div>
+            <button type="button" class="btn btn--secondary btn--small" id="run-compare">Run Comparison</button>
+          </div>
+          <div class="compare-summary" id="compare-summary" hidden></div>
+          <div class="table-wrap"><table class="data-table compare-table" id="compare-table"><thead><tr><th>Row</th><th>Excel Value</th><th>Status</th><th>Match in PDF</th></tr></thead><tbody id="compare-body"></tbody></table></div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer"><p>Powered by Tesseract.js &amp; PDF.js — optimized for Xerox scanner output</p></footer>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
